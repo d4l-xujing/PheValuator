@@ -26,7 +26,7 @@ IF OBJECT_ID('tempdb..#cohort_person', 'U') IS NOT NULL
 select *
 into #cohort_person
 from (select co.*, p.*,
-	  row_number() over (order by ABS(CHECKSUM(NewId())) % 123456789) rn
+	  row_number() over (order by MD5(NewId())) rn
 	from @cohort_database_schema.@cohort_database_table co
 	join @cdm_database_schema.person p
 	  on co.subject_id = p.person_id
@@ -37,7 +37,7 @@ from (select co.*, p.*,
 	    and co.COHORT_START_DATE between o.observation_period_start_date and o.observation_period_end_date
 	    and datediff(day, o.observation_period_start_date, co.COHORT_START_DATE) >= 365
 	where cohort_definition_id = @x_spec_cohort
-	  and COHORT_START_DATE between cast(@startDate as varchar) and cast(@endDate as varchar)) pos
+	  and COHORT_START_DATE between to_date('@startDate', 'YYYYMMDD') and to_date('@endDate', 'YYYYMMDD')) pos
 ;
 
 IF OBJECT_ID('tempdb..#eligibles', 'U') IS NOT NULL
@@ -58,7 +58,7 @@ join (
     and lenPd >= 730
 group by visit_occurrence.person_id
 having count(visit_occurrence_id) >= 5
-	and min(visit_start_date) between cast(@startDate as varchar) and cast(@endDate as varchar);
+	and min(visit_start_date) between to_date('@startDate', 'YYYYMMDD') and to_date('@endDate', 'YYYYMMDD');
 
 IF OBJECT_ID('@tempDB.@test_cohort', 'U') IS NOT NULL
 	DROP TABLE @tempDB.@test_cohort;
@@ -75,7 +75,7 @@ insert into @tempDB.@test_cohort (COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START
       from (select
 				{@mainPopnCohort == 0} ? {
 					v.person_id, min(visit_start_date) as visit_start_date,
-						row_number() over (order by ABS(CHECKSUM(NewId())) % 123456789) rn
+						row_number() over (order by MD5(NewId())) rn
 					from @cdm_database_schema.visit_occurrence v
 					join @cdm_database_schema.person p
 					  on v.person_id = p.person_id
@@ -91,7 +91,7 @@ insert into @tempDB.@test_cohort (COHORT_DEFINITION_ID, SUBJECT_ID, COHORT_START
 					group by v.person_id)}
 				{@mainPopnCohort != 0} ? {
 					co.subject_id as person_id, co.COHORT_START_DATE as visit_start_date,
-						row_number() over (order by ABS(CHECKSUM(NewId())) % 123456789) rn
+						row_number() over (order by MD5(NewId())) rn
 					from @cohort_database_schema.@cohort_database_table co
 					join @cdm_database_schema.person p
 					  on co.subject_id = p.person_id

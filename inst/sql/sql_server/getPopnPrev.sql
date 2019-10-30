@@ -31,7 +31,7 @@ popn as (
 					from init_popn)
 	and startYear - year_of_birth between  @lowerAgeLimit and @upperAgeLimit
 	and gender_concept_id in (@gender)
-	and ((startYear between year('@startDate') and year('@endDate')) or (endYear between year('@startDate') and year('@endDate'))))
+	and ((startYear between year(to_date('@startDate', 'YYYYMMDD')) and year(to_date('@endDate', 'YYYYMMDD')) or (endYear between year(to_date('@startDate', 'YYYYMMDD')) and year(to_date('@endDate', 'YYYYMMDD'))))))
 select cohCount*1.0/totCount popPrev
 from (
       select  (select count(person_id)
